@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دریافت هشتگ‌های پیشنهادی کتاب</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: center;
+            margin: 50px;
+            background-color: #f3f3f3;
+        }
+        h2 {
+            color: #4A90E2;
+        }
+        textarea {
+            width: 100%;
+            max-width: 500px;
+            height: 150px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>درباره خود بنویسید و هشتگ‌های مرتبط دریافت کنید</h2>
+    <textarea id="userInput" placeholder="مثلاً به چه موضوعاتی علاقه دارید؟"></textarea>
+    <br>
+    <button onclick="getBookHashtags()">دریافت هشتگ‌های پیشنهادی</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function getBookHashtags() {
+            const userText = document.getElementById('userInput').value;
+            const resultDiv = document.getElementById('result');
+
+            if (userText.trim() === "") {
+                resultDiv.innerHTML = "لطفاً ابتدا متن خود را وارد کنید.";
+                return;
+            }
+
+            resultDiv.innerHTML = "در حال پردازش...";
+
+            try {
+                const response = await fetch("https://ai-proxy-worker.s-darkwee.workers.dev/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "command",
+                        prompt: `Extract only book-related hashtags based on the user's interest. 
+                                 Provide the output in the following format: 
+                                 #hashtag1 #hashtag2 #hashtag3. 
+                                 User description: ${userText}`,
+                        max_tokens: 80,
+                        temperature: 0.6,
+                        stop_sequences: ["\n"],
+                        return_likelihoods: "NONE"
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`خطا: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const hashtags = data.generations ? data.generations[0].text.trim() : "";
+
+                // نمایش نتیجه و بررسی صحت خروجی
+                if (hashtags.startsWith("#")) {
+                    resultDiv.innerHTML = `<strong>هشتگ‌های پیشنهادی:</strong> <br> ${hashtags.replace(/\n/g, '<br>')}`;
+                } else {
+                    resultDiv.innerHTML = "متاسفانه خروجی مناسبی دریافت نشد. لطفاً دوباره امتحان کنید.";
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `خطا در دریافت اطلاعات: ${error.message}`;
+            }
+        }
+    </script>
+
+</body>
+</html>
